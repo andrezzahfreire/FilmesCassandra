@@ -49,13 +49,13 @@ Edite o arquivo `.env` e configure as variáveis conforme seu ambiente:
 
 ```env
 # Porta do servidor Node.js
-PORT=3000
+PORT=
 
 # Configurações do Cassandra
-CASSANDRA_CONTACT_POINTS=127.0.0.1
-CASSANDRA_PORT=9042
-CASSANDRA_LOCAL_DATACENTER=datacenter1
-CASSANDRA_KEYSPACE=filmes
+CASSANDRA_CONTACT_POINTS=
+CASSANDRA_PORT=
+CASSANDRA_LOCAL_DATACENTER=
+CASSANDRA_KEYSPACE=
 
 # Timeout de conexão (em ms)
 CASSANDRA_CONNECT_TIMEOUT=30000
