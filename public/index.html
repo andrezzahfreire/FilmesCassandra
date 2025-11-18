@@ -8,15 +8,25 @@
 </head>
 <body class="bg-light">
   <div class="container py-5">
-    <h1 class="mb-4 text-center">Avaliação de Filmes</h1>
+    <h1 class="mb-4 text-center">🎬 Avaliação de Filmes</h1>
 
     <!-- Formulário para adicionar filme -->
     <div class="card mb-4">
       <div class="card-body">
         <h5 class="card-title">Adicionar novo filme</h5>
-        <div class="input-group">
-          <input type="text" id="novoFilme" class="form-control" placeholder="Nome do filme">
-          <button class="btn btn-primary" onclick="adicionarFilme()">Adicionar</button>
+        <div class="row g-2">
+          <div class="col-md-5">
+            <input type="text" id="novoFilme" class="form-control" placeholder="Nome do filme" required>
+          </div>
+          <div class="col-md-3">
+            <input type="number" id="anoFilme" class="form-control" placeholder="Ano" min="1900" max="2100">
+          </div>
+          <div class="col-md-2">
+            <input type="text" id="generoFilme" class="form-control" placeholder="Gênero">
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary w-100" onclick="adicionarFilme()">Adicionar</button>
+          </div>
         </div>
       </div>
     </div>
@@ -34,10 +44,11 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
+          <div id="mediaAvaliacoes" class="alert alert-info text-center mb-3"></div>
           <ul id="listaAvaliacoes" class="list-group mb-3"></ul>
 
           <h6>Nova avaliação</h6>
-          <input type="number" id="nota" class="form-control mb-2" placeholder="Nota (0 a 10)" min="0" max="10">
+          <input type="number" id="nota" class="form-control mb-2" placeholder="Nota (0 a 10)" min="0" max="10" required>
           <button class="btn btn-success w-100" onclick="enviarAvaliacao()">Enviar</button>
         </div>
       </div>
@@ -49,73 +60,126 @@
     // 🔗 altere para o IP do seu backend (ou localhost se for local)
     const API_URL = "http://localhost:3000";
     let filmeAtual = null;
+    let tituloAtual = "";
 
     async function carregarFilmes() {
-      const resp = await fetch(`${API_URL}/filmes`);
-      const filmes = await resp.json();
-      const container = document.getElementById("listaFilmes");
-      container.innerHTML = "";
+      try {
+        const resp = await fetch(`${API_URL}/filmes`);
+        const filmes = await resp.json();
+        const container = document.getElementById("listaFilmes");
+        container.innerHTML = "";
 
-      filmes.forEach(f => {
-        container.innerHTML += `
-        <div class="col-md-4">
-          <div class="card shadow-sm">
-            <div class="card-body text-center">
-              <h5 class="card-title">${f.nome}</h5>              
-                <button class="btn btn-outline-primary btn-sm"
-                onclick="verAvaliacoes('${f.id}', '${f.titulo}')">Ver avaliações</button>
+        if (filmes.length === 0) {
+          container.innerHTML = '<div class="col-12"><p class="text-center text-muted">Nenhum filme cadastrado ainda.</p></div>';
+          return;
+        }
+
+        filmes.forEach(f => {
+          container.innerHTML += `
+          <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+              <div class="card-body text-center d-flex flex-column">
+                <h5 class="card-title">${f.titulo}</h5>
+                <p class="text-muted">${f.ano || 'Ano desconhecido'} • ${f.genero || 'Gênero desconhecido'}</p>
+                <button class="btn btn-outline-primary btn-sm mt-auto"
+                  onclick="verAvaliacoes('${f.id}', '${f.titulo}')">Ver avaliações</button>
+              </div>
             </div>
-          </div>
-        </div>`;
-      });
+          </div>`;
+        });
+      } catch (err) {
+        console.error('Erro ao carregar filmes:', err);
+        alert('Erro ao carregar filmes. Verifique se o servidor está rodando.');
+      }
     }
 
     async function adicionarFilme() {
-      const nome = document.getElementById("novoFilme").value.trim();
-      if (!nome) return alert("Digite o nome do filme!");
+      const titulo = document.getElementById("novoFilme").value.trim();
+      const ano = document.getElementById("anoFilme").value ? parseInt(document.getElementById("anoFilme").value) : null;
+      const genero = document.getElementById("generoFilme").value.trim() || null;
 
-      await fetch(`${API_URL}/filmes`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ titulo: nome, ano: 2025, genero: "Desconhecido" })
-      });
+      if (!titulo) {
+        alert("Digite o nome do filme!");
+        return;
+      }
 
-      document.getElementById("novoFilme").value = "";
-      carregarFilmes();
+      try {
+        await fetch(`${API_URL}/filmes`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ titulo, ano, genero })
+        });
+
+        document.getElementById("novoFilme").value = "";
+        document.getElementById("anoFilme").value = "";
+        document.getElementById("generoFilme").value = "";
+        carregarFilmes();
+        alert('Filme adicionado com sucesso!');
+      } catch (err) {
+        console.error('Erro ao adicionar filme:', err);
+        alert('Erro ao adicionar filme.');
+      }
     }
 
     async function verAvaliacoes(id_filme, titulo) {
       filmeAtual = id_filme;
-      document.getElementById("modalTitulo").textContent = `Avaliações de: ${titulo}`;
+      tituloAtual = titulo;
+      document.getElementById("modalTitulo").textContent = `Avaliações: ${titulo}`;
 
-      const resp = await fetch(`${API_URL}/avaliacoes`);
-      const avals = await resp.json();
-      const lista = document.getElementById("listaAvaliacoes");
-      const filtradas = avals.filter(a => a.id_filme === id_filme);
+      try {
+        const resp = await fetch(`${API_URL}/avaliacoes/${id_filme}`);
+        const avals = await resp.json();
+        const lista = document.getElementById("listaAvaliacoes");
+        const mediaDiv = document.getElementById("mediaAvaliacoes");
 
-      lista.innerHTML = filtradas.map(a => `
-        <li class="list-group-item">
-          Nota: ${a.nota} <br>
-          <small>${new Date(a.data).toLocaleString()}</small>
-        </li>`).join("");
+        if (avals.length === 0) {
+          lista.innerHTML = '<li class="list-group-item text-muted text-center">Nenhuma avaliação ainda. Seja o primeiro!</li>';
+          mediaDiv.innerHTML = 'Média: N/A';
+        } else {
+          const media = (avals.reduce((sum, a) => sum + a.nota, 0) / avals.length).toFixed(1);
+          mediaDiv.innerHTML = `<strong>Média:</strong> ${media} ⭐ (${avals.length} avaliações)`;
 
-      new bootstrap.Modal(document.getElementById("avaliacoesModal")).show();
+          lista.innerHTML = avals.map(a => `
+            <li class="list-group-item">
+              <div class="d-flex justify-content-between">
+                <span><strong>Nota:</strong> ${a.nota} ⭐</span>
+                <small class="text-muted">${new Date(a.data).toLocaleString('pt-BR')}</small>
+              </div>
+            </li>`).join("");
+        }
+
+        new bootstrap.Modal(document.getElementById("avaliacoesModal")).show();
+      } catch (err) {
+        console.error('Erro ao carregar avaliações:', err);
+        alert('Erro ao carregar avaliações.');
+      }
     }
 
     async function enviarAvaliacao() {
       const nota = parseInt(document.getElementById("nota").value);
-      if (isNaN(nota)) return alert("Informe uma nota válida!");
+      
+      if (isNaN(nota) || nota < 0 || nota > 10) {
+        alert("Informe uma nota válida entre 0 e 10!");
+        return;
+      }
 
-      await fetch(`${API_URL}/avaliacoes`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ id_filme: filmeAtual, nota })
-      });
+      try {
+        await fetch(`${API_URL}/avaliacoes`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ id_filme: filmeAtual, nota })
+        });
 
-      document.getElementById("nota").value = "";
-      verAvaliacoes(filmeAtual, document.getElementById("modalTitulo").textContent);
+        document.getElementById("nota").value = "";
+        alert('Avaliação enviada com sucesso!');
+        verAvaliacoes(filmeAtual, tituloAtual);
+      } catch (err) {
+        console.error('Erro ao enviar avaliação:', err);
+        alert('Erro ao enviar avaliação.');
+      }
     }
 
+    // Carregar filmes ao iniciar
     carregarFilmes();
   </script>
 </body>
