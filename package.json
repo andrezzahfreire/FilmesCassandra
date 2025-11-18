@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "cassandra-driver": "^4.8.0",
+    "express": "^5.1.0"
+  }
+}
